@@ -26,6 +26,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.module.infra.framework.file.core.utils.FileTypeUtils.writeAttachment;
 
@@ -41,7 +43,7 @@ public class FileController {
 
     @PostMapping("/upload")
     @Operation(summary = "上传文件", description = "模式一：后端上传文件")
-    public CommonResult<String> uploadFile(FileUploadReqVO uploadReqVO) throws Exception {
+    public CommonResult<String> uploadFile(@Valid FileUploadReqVO uploadReqVO) throws Exception {
         MultipartFile file = uploadReqVO.getFile();
         byte[] content = IoUtil.readBytes(file.getInputStream());
         return success(fileService.createFile(content, file.getOriginalFilename(),
@@ -49,7 +51,7 @@ public class FileController {
     }
 
     @GetMapping("/presigned-url")
-    @Operation(summary = "获取文件预签名地址", description = "模式二：前端上传文件：用于前端直接上传七牛、阿里云 OSS 等文件存储器")
+    @Operation(summary = "获取文件预签名地址（上传）", description = "模式二：前端上传文件：用于前端直接上传七牛、阿里云 OSS 等文件存储器")
     @Parameters({
             @Parameter(name = "name", description = "文件名称", required = true),
             @Parameter(name = "directory", description = "文件目录")
@@ -57,7 +59,7 @@ public class FileController {
     public CommonResult<FilePresignedUrlRespVO> getFilePresignedUrl(
             @RequestParam("name") String name,
             @RequestParam(value = "directory", required = false) String directory) {
-        return success(fileService.getFilePresignedUrl(name, directory));
+        return success(fileService.presignPutUrl(name, directory));
     }
 
     @PostMapping("/create")
@@ -72,6 +74,15 @@ public class FileController {
     @PreAuthorize("@ss.hasPermission('infra:file:delete')")
     public CommonResult<Boolean> deleteFile(@RequestParam("id") Long id) throws Exception {
         fileService.deleteFile(id);
+        return success(true);
+    }
+
+    @DeleteMapping("/delete-list")
+    @Operation(summary = "批量删除文件")
+    @Parameter(name = "ids", description = "编号列表", required = true)
+    @PreAuthorize("@ss.hasPermission('infra:file:delete')")
+    public CommonResult<Boolean> deleteFileList(@RequestParam("ids") List<Long> ids) throws Exception {
+        fileService.deleteFileList(ids);
         return success(true);
     }
 

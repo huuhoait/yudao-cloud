@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.infra.framework.file.core.utils;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.util.http.HttpUtils;
-import com.alibaba.ttl.TransmittableThreadLocal;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
@@ -81,13 +80,19 @@ public class FileTypeUtils {
      */
     public static void writeAttachment(HttpServletResponse response, String filename, byte[] content) throws IOException {
         // 设置 header 和 contentType
-        response.setHeader("Content-Disposition", "attachment;filename=" + HttpUtils.encodeUtf8(filename));
         String contentType = getMineType(content, filename);
         response.setContentType(contentType);
+        // 设置内容显示、下载文件名：https://www.cnblogs.com/wq-9/articles/12165056.html
+        if (StrUtil.containsIgnoreCase(contentType, "image/")) {
+            // 参见 https://github.com/YunaiV/ruoyi-vue-pro/issues/692 讨论
+            response.setHeader("Content-Disposition", "inline;filename=" + HttpUtils.encodeUtf8(filename));
+        } else {
+            response.setHeader("Content-Disposition", "attachment;filename=" + HttpUtils.encodeUtf8(filename));
+        }
         // 针对 video 的特殊处理，解决视频地址在移动端播放的兼容性问题
         if (StrUtil.containsIgnoreCase(contentType, "video")) {
-            response.setHeader("Content-Length", String.valueOf(content.length - 1));
-            response.setHeader("Content-Range", String.valueOf(content.length - 1));
+            response.setHeader("Content-Length", String.valueOf(content.length));
+            response.setHeader("Content-Range", "bytes 0-" + (content.length - 1) + "/" + content.length);
             response.setHeader("Accept-Ranges", "bytes");
         }
         // 输出附件

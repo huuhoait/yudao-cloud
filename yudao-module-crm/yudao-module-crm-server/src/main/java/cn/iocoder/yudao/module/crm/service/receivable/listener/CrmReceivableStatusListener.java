@@ -2,9 +2,14 @@ package cn.iocoder.yudao.module.crm.service.receivable.listener;
 
 import cn.iocoder.yudao.module.bpm.api.event.BpmProcessInstanceStatusEvent;
 import cn.iocoder.yudao.module.bpm.api.event.BpmProcessInstanceStatusEventListener;
+import cn.iocoder.yudao.module.crm.enums.ApiConstants;
 import cn.iocoder.yudao.module.crm.service.receivable.CrmReceivableService;
 import cn.iocoder.yudao.module.crm.service.receivable.CrmReceivableServiceImpl;
-import org.springframework.stereotype.Component;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 
@@ -13,8 +18,12 @@ import javax.annotation.Resource;
  *
  * @author HUIHUI
  */
-@Component
+@RestController
+@Validated
+@FeignClient(name = ApiConstants.NAME) // TODO 芋艿：fallbackFactory =
 public class CrmReceivableStatusListener extends BpmProcessInstanceStatusEventListener {
+
+    private static final String PREFIX = ApiConstants.PREFIX + "/receivable";
 
     @Resource
     private CrmReceivableService receivableService;
@@ -25,7 +34,8 @@ public class CrmReceivableStatusListener extends BpmProcessInstanceStatusEventLi
     }
 
     @Override
-    public void onEvent(BpmProcessInstanceStatusEvent event) {
+    @PostMapping(PREFIX + "/update-audit-status") // 目的：提供给 bpm-server rpc 调用
+    public void onEvent(@RequestBody BpmProcessInstanceStatusEvent event) {
         receivableService.updateReceivableAuditStatus(Long.parseLong(event.getBusinessKey()), event.getStatus());
     }
 
